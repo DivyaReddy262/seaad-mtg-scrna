@@ -1,0 +1,167 @@
+---
+title: "Section 2: Quality Control & Filtering"
+author: "Konda Divya Reddy"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE,
+                      fig.width=9, fig.height=6)
+```
+
+## 1. Load libraries
+```{r libraries}
+library(Seurat)
+library(tidyverse)
+library(patchwork)
+library(scDblFinder)
+library(SingleCellExperiment)
+```
+
+## 2. Load checkpoint
+```{r load}
+out_dir    <- "/N/scratch/dikonda/seaad_scrna/results"
+seurat_obj <- readRDS(file.path(out_dir, "01_seurat_loaded.rds"))
+cat("Loaded:", nrow(seurat_obj), "genes x", ncol(seurat_obj), "nuclei\n")
+```
+
+## 3. Compute QC metrics
+```{r qc-metrics}
+seurat_obj[["pct_mt"]]    <- PercentageFeatureSet(seurat_obj, pattern = "^MT-")
+seurat_obj[["pct_ribo"]]  <- PercentageFeatureSet(seurat_obj, pattern = "^RP[SL]")
+seurat_obj[["log10_nCount"]] <- log10(seurat_obj$nCount_RNA + 1)
+summary(seurat_obj@meta.data[, c("nCount_RNA", "nFeature_RNA", "pct_mt", "pct_ribo")])
+```
+
+## 4. Visualize distributions
+
+### 4.1 Violin plots
+```{r violin, fig.height=7}
+VlnPlot(
+  seurat_obj,
+  features = c("nFeature_RNA", "nCount_RNA", "pct_mt", "pct_ribo"),
+  group.by = "Diagnosis",
+  ncol     = 2,
+  pt.size  = 0
+) & theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### 4.2 Scatter plots
+```{r scatter, fig.height=5}
+p1 <- FeatureScatter(seurat_obj, "nCount_RNA", "nFeature_RNA",
+                     group.by = "Diagnosis") +
+      geom_smooth(method = "lm", se = FALSE, color = "black", linewidth = 0.5)
+p2 <- FeatureScatter(seurat_obj, "nCount_RNA", "pct_mt",
+                     group.by = "Diagnosis") +
+      geom_hline(yintercept = 5, linetype = "dashed", color = "firebrick")
+p1 + p2
+```
+
+### 4.3 Histograms
+```{r histograms, fig.height=8}
+meta <- seurat_obj@meta.data
+
+h1 <- ggplot(meta, aes(x = nFeature_RNA)) +
+  geom_histogram(bins = 100, fill = "#1D9E75", alpha = 0.8) +
+  geom_vline(xintercept = c(200, 7500), linetype = "dashed", color = "firebrick") +
+  labs(title = "Genes per nucleus") + theme_minimal()
+
+h2 <- ggplot(meta, aes(x = nCount_RNA)) +
+  geom_histogram(bins = 100, fill = "#378ADD", alpha = 0.8) +
+  geom_vline(xintercept = 500, linetype = "dashed", color = "firebrick") +
+  scale_x_log10() +
+  labs(title = "UMI count (log10)") + theme_minimal()
+
+h3 <- ggplot(meta, aes(x = pct_mt)) +
+  geom_histogram(bins = 80, fill = "#D85A30", alpha = 0.8) +
+  geom_vline(xintercept = 5, linetype = "dashed", color = "firebrick") +
+  labs(title = "Mitochondrial %") + theme_minimal()
+
+h4 <- ggplot(meta, aes(x = pct_ribo)) +
+  geom_histogram(bins = 80, fill = "#7F77DD", alpha = 0.8) +
+  labs(title = "Ribosomal %") + theme_minimal()
+
+(h1 + h2) / (h3 + h4)
+```
+
+## 5. Doublet detection
+```{r doublets}
+message("Running scDblFinder...")
+sce <- as.SingleCellExperiment(seurat_obj)
+set.seed(42)
+sce <- scDblFinder(sce, samples = "Donor ID")
+seurat_obj$dbl_score <- sce$scDblFinder.score
+seurat_obj$dbl_class <- sce$scDblFinder.class
+cat("\nDoublet summary:\n")
+print(table(seurat_obj$dbl_class))
+cat(sprintf("Doublet rate: %.1f%%\n",
+    100 * mean(seurat_obj$dbl_class == "doublet")))
+```
+
+```{r doublet-plot}
+ggplot(seurat_obj@meta.data, aes(x = dbl_score, fill = dbl_class)) +
+  geom_histogram(bins = 80, alpha = 0.8, position = "identity") +
+  scale_fill_manual(values = c("singlet" = "#1D9E75", "doublet" = "#D85A30")) +
+  labs(title = "Doublet score distribution",
+       x = "scDblFinder score", y = "Count", fill = "Class") +
+  theme_minimal()
+```
+
+## 6. Filter nuclei
+```{r filter}
+MIN_FEATURES <- 200
+MAX_FEATURES <- 7500
+MIN_COUNTS   <- 500
+MAX_PCT_MT   <- 5
+
+n_before <- ncol(seurat_obj)
+
+seurat_obj <- subset(
+  seurat_obj,
+  subset = nFeature_RNA >= MIN_FEATURES &
+           nFeature_RNA <= MAX_FEATURES &
+           nCount_RNA   >= MIN_COUNTS   &
+           pct_mt       <  MAX_PCT_MT   &
+           dbl_class    == "singlet"
+)
+
+n_after <- ncol(seurat_obj)
+cat(sprintf("Before : %d\nAfter  : %d\nRemoved: %d (%.1f%%)\n",
+    n_before, n_after, n_before - n_after,
+    100 * (n_before - n_after) / n_before))
+```
+
+## 7. Post-QC violin plots
+```{r post-qc}
+VlnPlot(
+  seurat_obj,
+  features = c("nFeature_RNA", "nCount_RNA", "pct_mt"),
+  group.by = "Diagnosis",
+  ncol     = 3,
+  pt.size  = 0
+) & theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## 8. Save
+```{r save}
+saveRDS(seurat_obj, file.path(out_dir, "02_seurat_qc_filtered.rds"))
+
+seurat_obj@meta.data %>%
+  rownames_to_column("nucleus_id") %>%
+  select(nucleus_id, nCount_RNA, nFeature_RNA, pct_mt,
+         pct_ribo, dbl_score, dbl_class, Diagnosis, `Donor ID`) %>%
+  write_csv(file.path(out_dir, "02_qc_metrics.csv"))
+
+cat("Saved.\n")
+```
+
+## Session info
+```{r session}
+sessionInfo()
+```
