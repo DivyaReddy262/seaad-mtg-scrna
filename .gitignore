@@ -1,0 +1,10 @@
+data/
+results/
+logs/
+*.h5ad
+*.h5seurat
+*.rds
+*.RData
+.Rhistory
+.DS_Store
+.Rproj.user/
