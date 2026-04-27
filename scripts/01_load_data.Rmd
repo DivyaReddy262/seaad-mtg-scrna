@@ -1,0 +1,96 @@
+---
+title: "Section 1: Load SEA-AD MTG Data"
+author: "Konda Divya Reddy"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+## 1. Load libraries
+```{r libraries}
+library(Seurat)
+library(SeuratDisk)
+library(tidyverse)
+```
+
+## 2. Set paths
+```{r paths}
+h5ad_path    <- "/N/scratch/dikonda/seaad_scrna/data/SEAAD_MTG_RNAseq_all-nuclei.2024-02-13.h5ad"
+h5seurat_path <- sub(".h5ad$", ".h5seurat", h5ad_path)
+out_dir      <- "/N/scratch/dikonda/seaad_scrna/results"
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+```
+
+## 3. Convert H5AD to H5Seurat
+```{r convert}
+if (!file.exists(h5seurat_path)) {
+  message("Converting H5AD to H5Seurat...")
+  Convert(h5ad_path, dest = "h5seurat", overwrite = FALSE)
+  message("Done.")
+} else {
+  message("H5Seurat already exists — skipping.")
+}
+```
+
+## 4. Load Seurat object
+```{r load}
+seurat_obj <- LoadH5Seurat(
+  h5seurat_path,
+  assays     = "RNA",
+  reductions = FALSE,
+  graphs     = FALSE
+)
+cat("Genes:", nrow(seurat_obj), "\n")
+cat("Nuclei:", ncol(seurat_obj), "\n")
+```
+
+## 5. Inspect metadata
+```{r metadata}
+cat("Metadata columns:\n")
+print(colnames(seurat_obj@meta.data))
+head(seurat_obj@meta.data)
+```
+
+## 6. Check key fields
+```{r key-fields}
+key_fields <- c("Donor ID", "Diagnosis", "Sex", "Age at Death",
+                "Braak Stage", "CERAD score")
+for (field in key_fields) {
+  if (field %in% colnames(seurat_obj@meta.data)) {
+    cat(sprintf("\n%s:\n", field))
+    print(table(seurat_obj@meta.data[[field]], useNA = "always"))
+  }
+}
+```
+
+## 7. Donor summary
+```{r donor-summary}
+seurat_obj@meta.data %>%
+  group_by(`Donor ID`, Diagnosis) %>%
+  summarise(n_nuclei = n(), .groups = "drop") %>%
+  arrange(Diagnosis, `Donor ID`) %>%
+  print()
+```
+
+## 8. Save outputs
+```{r save}
+seurat_obj@meta.data %>%
+  rownames_to_column("nucleus_id") %>%
+  write_csv(file.path(out_dir, "01_metadata_summary.csv"))
+
+saveRDS(seurat_obj, file.path(out_dir, "01_seurat_loaded.rds"))
+cat("Saved.\n")
+```
+
+## Session info
+```{r session}
+sessionInfo()
+```
