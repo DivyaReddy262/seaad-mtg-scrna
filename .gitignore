@@ -1,5 +1,4 @@
 data/
-results/
 logs/
 *.h5ad
 *.h5seurat
