@@ -1,3 +1,9 @@
+# ============================================
+# Script: 05_annotate.R
+# Description: Cell type annotation using
+#              official SEA-AD subclass labels
+# ============================================
+
 .libPaths("/N/scratch/dikonda/R_libs")
 library(Seurat)
 library(ggplot2)
@@ -5,51 +11,24 @@ library(ggplot2)
 cat("Loading clustered object...\n")
 seurat_obj <- readRDS("/N/scratch/dikonda/seurat_project/results/seurat_clustered.rds")
 
-# Annotate clusters
-new_labels <- c(
-  "0"  = "Glutamatergic (L2-3)",
-  "1"  = "Oligodendrocyte",
-  "2"  = "Excitatory Neuron",
-  "3"  = "GABAergic Neuron",
-  "4"  = "Fibroblast",
-  "5"  = "Glutamatergic Neuron",
-  "6"  = "VIP Interneuron",
-  "7"  = "Astrocyte",
-  "8"  = "PV Interneuron",
-  "9"  = "SST Interneuron",
-  "10" = "Microglia",
-  "11" = "GABAergic Interneuron",
-  "12" = "OPC",
-  "13" = "Glutamatergic Neuron",
-  "14" = "Mast Cell",
-  "15" = "Glutamatergic Neuron",
-  "16" = "Pericyte",
-  "17" = "Glutamatergic Neuron",
-  "18" = "GABAergic Neuron",
-  "19" = "Endothelial Cell",
-  "20" = "Glutamatergic Neuron",
-  "21" = "Immune Cell",
-  "22" = "Microglia",
-  "23" = "Pericyte",
-  "24" = "Endothelial Cell",
-  "25" = "Fibroblast",
-  "26" = "Astrocyte"
-)
+# Use official SEA-AD subclass annotations directly
+cat("Applying official SEA-AD subclass labels...\n")
+Idents(seurat_obj) <- seurat_obj@meta.data$subclass
+seurat_obj@meta.data$cell_annotation <- seurat_obj@meta.data$subclass
 
-seurat_obj <- RenameIdents(seurat_obj, new_labels)
-seurat_obj@meta.data$cell_annotation <- Idents(seurat_obj)
-
-# Plot annotated UMAP
+# Plot with official labels
+cat("Saving annotated UMAP...\n")
 p <- DimPlot(seurat_obj, reduction = "umap",
              label = TRUE, repel = TRUE,
-             label.size = 3) +
+             label.size = 3, pt.size = 0.3) +
      theme_bw() +
-     ggtitle("Annotated Cell Types") +
+     ggtitle("Official SEA-AD Cell Type Annotations") +
      theme(plot.background = element_rect(fill = "white"),
-           panel.background = element_rect(fill = "white"))
+           panel.background = element_rect(fill = "white")) +
+     guides(color = guide_legend(override.aes = list(size = 4)))
 
 ggsave("/N/scratch/dikonda/seurat_project/results/umap_annotated.png",
-       p, width = 12, height = 8, bg = "white")
+       p, width = 16, height = 10, bg = "white")
 
 cat("Cell type distribution:\n")
 print(table(seurat_obj@meta.data$cell_annotation))
