@@ -1,0 +1,2 @@
+"category","subcategory","ID","Description","GeneRatio","BgRatio","RichFactor","FoldEnrichment","zScore","pvalue","p.adjust","qvalue","geneID","Count"
+"Metabolism","Glycan biosynthesis and metabolism","hsa00604","Glycosphingolipid biosynthesis - ganglio series","4/108","15/9378",0.266666666666667,23.1555555555556,9.26882603521457,2.05941328248158e-05,0.00500437427643023,0.00446567511780215,"256435/8869/6489/6482",4
