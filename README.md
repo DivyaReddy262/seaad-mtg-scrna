@@ -116,7 +116,6 @@ Slingshot pseudotime on excitatory cortical neuron subtypes (L2/3 IT, L4 IT, L5 
 ---
 
 ## Repository Structure
-## Repository Structure
 seaad-mtg-scrna/
 ├── README.md
 ├── scripts/
@@ -197,7 +196,6 @@ sbatch scripts/10_trajectory.sh
 - Use H5SparseMatrix instead of zellkonverter to read h5ad files on this cluster
 - Always set LD_PRELOAD before starting R to fix GCC library mismatch
 - Use `-A workshop` in SLURM scripts for better queue priority
-- Scratch storage has 60-day deletion policy — files are backed up to Slate
 
 ---
 
