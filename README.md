@@ -116,33 +116,42 @@ Slingshot pseudotime on excitatory cortical neuron subtypes (L2/3 IT, L4 IT, L5 
 ---
 
 ## Repository Structure
-seaad-mtg-scrna/
-├── README.md
-├── scripts/
-│   ├── load_data.R
-│   ├── 02_normalize_pca.R / .sh
-│   ├── 03_umap_cluster.R / .sh
-│   ├── 04_markers.R / .sh
-│   ├── 05_annotate.R / .sh
-│   ├── 06_de_analysis.R / .sh
-│   ├── 07_pathway_enrichment.R / .sh
-│   ├── 08_heatmap.R / .sh
-│   ├── 09_cell_proportion.R / .sh
-│   └── 10_trajectory.R / .sh
-└── results/
-├── qc/                        QC violin and scatter plots
-├── clustering/                Elbow plot, marker gene CSVs
-├── umap/                      UMAP plots
-├── differential_expression/
-│   ├── plots/                 Volcano plots per cell type
-│   └── tables/                DE results CSVs
-├── pathway_enrichment/
-│   ├── plots/                 GO and KEGG dot plots
-│   └── tables/                GO and KEGG result CSVs
-├── heatmap/                   Heatmap of top DE genes
-├── cell_proportion/           Proportion plots and CSV
-└── trajectory/                Pseudotime plots
----
+
+    seaad-mtg-scrna/
+        README.md
+        scripts/
+            load_data.R
+            02_normalize_pca.R
+            02_normalize_pca.sh
+            03_umap_cluster.R
+            03_umap_cluster.sh
+            04_markers.R
+            04_markers.sh
+            05_annotate.R
+            05_annotate.sh
+            06_de_analysis.R
+            06_de_analysis.sh
+            07_pathway_enrichment.R
+            07_pathway_enrichment.sh
+            08_heatmap.R
+            08_heatmap.sh
+            09_cell_proportion.R
+            09_cell_proportion.sh
+            10_trajectory.R
+            10_trajectory.sh
+        results/
+            qc/
+            clustering/
+            umap/
+            differential_expression/
+                plots/
+                tables/
+            pathway_enrichment/
+                plots/
+                tables/
+            heatmap/
+            cell_proportion/
+            trajectory/
 
 ## How to Run
 
@@ -152,12 +161,12 @@ module load gnu/9.3.0
 module load r/4.4.1
 export LD_PRELOAD=/N/soft/rhel8/gcc/14.2.0/lib64/libstdc++.so.6
 export LD_LIBRARY_PATH=/N/soft/rhel8/gcc/14.2.0/lib64:$LD_LIBRARY_PATH
-```
+~~~
 
 **Download Data**
 ```bash
 wget https://sea-ad-single-cell-profiling.s3.amazonaws.com/MTG/RNAseq/SEAAD_MTG_RNAseq_all-nuclei.2024-02-13.h5ad
-```
+~~~
 
 **Package Installation**
 ```r
@@ -165,7 +174,7 @@ install.packages("pak")
 pak::pkg_install("Seurat")
 BiocManager::install(c("HDF5Array", "rhdf5", "clusterProfiler",
                        "org.Hs.eg.db", "slingshot", "SingleCellExperiment", "speckle"))
-```
+~~~
 
 **Submit Jobs in Order**
 ```bash
@@ -179,7 +188,7 @@ sbatch scripts/07_pathway_enrichment.sh
 sbatch scripts/08_heatmap.sh
 sbatch scripts/09_cell_proportion.sh
 sbatch scripts/10_trajectory.sh
-```
+~~~
 
 **Resource Requirements**
 
